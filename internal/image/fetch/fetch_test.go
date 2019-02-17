@@ -1,11 +1,11 @@
 package fetch
 
 import (
-	"bou.ke/monkey"
 	"github.com/pzabolotniy/elastic-image/internal/config"
 	"github.com/pzabolotniy/elastic-image/internal/httpclient"
 	"github.com/pzabolotniy/elastic-image/internal/httpclient/mocks"
 	"github.com/pzabolotniy/elastic-image/internal/logging"
+	"github.com/pzabolotniy/monkey"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"testing"

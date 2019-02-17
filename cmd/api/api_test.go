@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bou.ke/monkey"
 	"bytes"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -11,6 +10,7 @@ import (
 	"github.com/pzabolotniy/elastic-image/internal/image/resize"
 	resizeMocks "github.com/pzabolotniy/elastic-image/internal/image/resize/mocks"
 	"github.com/pzabolotniy/elastic-image/internal/logging"
+	"github.com/pzabolotniy/monkey"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
