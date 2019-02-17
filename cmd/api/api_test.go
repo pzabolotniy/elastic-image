@@ -69,6 +69,15 @@ func TestPostImageResize(t *testing.T) {
 	}
 	expectedBodyBytes := imageBytes
 	assert.Equalf(t, expectedBodyBytes, gotBodybytes, "%s - response ok", testName)
+	apiHeaders := apiResponse.Header()
+	contentLength := len(mockedImage)
+	cacheTTL := testConfig.ImageCacheTTL
+	expectedHeaders := http.Header{
+		"Content-Type": []string{"image/jpeg"},
+		"Content-Length": []string{fmt.Sprintf("%d",contentLength)},
+		"Cache-Control": []string{fmt.Sprintf("max-age=%d, public", cacheTTL)},
+	}
+	assert.Equalf(t, expectedHeaders, apiHeaders, "%s - response headers ok", testName)
 
 	mockedBrowser.AssertExpectations(t)
 	mockedResponse.AssertExpectations(t)
