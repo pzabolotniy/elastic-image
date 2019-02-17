@@ -3,11 +3,13 @@ package api
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/pzabolotniy/elastic-image/internal/api/entity"
 	"github.com/pzabolotniy/elastic-image/internal/config"
 	"github.com/pzabolotniy/elastic-image/internal/image/fetch"
 	resizeWrapper "github.com/pzabolotniy/elastic-image/internal/image/resize"
 	"github.com/pzabolotniy/elastic-image/internal/logging"
+	"github.com/pzabolotniy/elastic-image/internal/middleware"
 	"gopkg.in/go-playground/validator.v9"
 	"net/http"
 	"time"
@@ -25,6 +27,9 @@ type Env struct {
 type Enver interface {
 	Logger() logging.Logger
 	PostResizeImage(ctx *gin.Context)
+	PrepareCtxID(ctx *gin.Context)
+	LogInput(ctx *gin.Context)
+	LogCompleted(ctx *gin.Context)
 	Timeout() time.Duration
 	CacheTTL() int
 }
@@ -93,6 +98,35 @@ func (env *Env) PostResizeImage(ctx *gin.Context) {
 
 	cacheTTL := env.CacheTTL()
 	prepareOKResponse(ctx, newImage, cacheTTL, logger)
+}
+
+// PrepareCtxID sets uniq ID per request and reassigns logger with it
+func (env *Env) PrepareCtxID(ctx *gin.Context) {
+	id := ctx.GetHeader("x-ctxid")
+	if id == "" {
+		id = uuid.New().String()
+	}
+	ctxID := id
+	NewLogger := env.Logger().PutMDC(logging.CtxID, ctxID)
+	env.conf.APILogger = NewLogger
+}
+
+// LogInput logs incoming request: method, URI and body
+func (env *Env) LogInput(ctx *gin.Context) {
+	rMethod := ctx.Request.Method
+	rURI := ctx.Request.URL.Path
+
+	logger := env.Logger()
+	logger.Debugf("REQUEST: %q %q", rMethod, rURI)
+	inputBody := middleware.GetInputData(ctx)
+	logger.Debugf("INPUT: '%s'", *inputBody)
+}
+
+// LogCompleted terminates request log-records
+func (env *Env) LogCompleted(ctx *gin.Context) {
+	ctx.Next()
+	logger := env.Logger()
+	logger.Debug("REQUEST COMPLETED")
 }
 
 func prepareOKResponse(ctx *gin.Context, image []byte, cacheTTL int, logger logging.Logger) {
