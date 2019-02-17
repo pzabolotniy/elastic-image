@@ -107,7 +107,7 @@ func (env *Env) PrepareCtxID(ctx *gin.Context) {
 		id = uuid.New().String()
 	}
 	ctxID := id
-	NewLogger := env.Logger().PutMDC(logging.CtxID, ctxID)
+	NewLogger := env.Logger().PutField(logging.CtxID, ctxID)
 	env.conf.APILogger = NewLogger
 }
 

@@ -157,22 +157,18 @@ type Logger interface {
 	// Set the parent Logger of this Logger.
 	SetParent(parent Logger)
 
-	PutMDC( key, value string ) *StandardLogger
+	PutCtxFields(fields CtxFields) *StandardLogger
+	GetCtxFields() CtxFields
 
-	GetMDC(key string) string
-
-	Write( p []byte ) ( int, error )
-
-	SetCallerDepth(depth int)
+	GetCtxField(key string) string
 }
 
-type FindCallerFunc func(depth int) *CallerInfo
+type FindCallerFunc func() *CallerInfo
 
 // Find the stack frame of the caller so that we can note the source file name,
 // line number and function name.
-func findCaller(depth int) *CallerInfo {
-	depthLevel := 3 + depth
-	for i := depthLevel; ; i++ {
+func findCaller() *CallerInfo {
+	for i := 3; ; i++ {
 		pc, filepath, line, ok := runtime.Caller(i)
 		if !ok {
 			return UnknownCallerInfo
@@ -192,16 +188,15 @@ func findCaller(depth int) *CallerInfo {
 	}
 }
 
-type MDC map[string]string
+type CtxFields map[string]string
 
-func ( mdc *MDC ) save( k, v string ) {
-	(*mdc)[k] = v
+func (fields *CtxFields) save(k, v string) {
+	(*fields)[k] = v
 }
 
-func ( mdc *MDC ) get( k string ) (string) {
-	return (*mdc)[k]
+func (fields *CtxFields) get(k string) string {
+	return (*fields)[k]
 }
-
 
 // The standard logger implementation class.
 type StandardLogger struct {
@@ -214,8 +209,7 @@ type StandardLogger struct {
 	handlers       *ListSet
 	manager        *Manager
 	lock           sync.RWMutex
-	mdc            MDC
-	callerDepth    int
+	fields         CtxFields
 }
 
 // Initialize a standard logger instance with name and logging level.
@@ -229,46 +223,35 @@ func NewStandardLogger(name string, level LogLevelType) *StandardLogger {
 		propagate:        true,
 		handlers:         NewListSet(),
 		manager:          nil,
-		mdc:              make(MDC),
-		callerDepth:      0,
+		fields:           make(CtxFields),
 	}
 	return object
 }
 
-func (self *StandardLogger) PutMDC( key, value string ) *StandardLogger {
+func (self *StandardLogger) PutCtxFields(fields CtxFields) *StandardLogger {
 	self.lock.RLock()
 	defer self.lock.RUnlock()
 
-	ctxLogger := &StandardLogger{
-		StandardFilterer: self.StandardFilterer,
-		parent:           self.parent,
-		name:             self.name,
-		findCallerFunc:   self.findCallerFunc,
-		level:            self.level,
-		propagate:        self.propagate,
-		handlers:         self.handlers,
-		manager:          self.manager,
-		mdc:              make(MDC),
-		callerDepth:      self.callerDepth,
+	clone := *self
+	if clone.fields == nil {
+		clone.fields = make(CtxFields)
 	}
-	ctxLogger.mdc.save(key, value)
-	return ctxLogger
+	for k, v := range fields {
+		clone.fields.save(k, v)
+	}
+
+	return &clone
 }
 
-func (self *StandardLogger) GetMDC( key string ) string {
+func (self *StandardLogger) GetCtxFields() CtxFields {
+	return self.fields
+}
+
+func (self *StandardLogger) GetCtxField(key string) string {
 	self.lock.RLock()
 	defer self.lock.RUnlock()
-	v := self.mdc.get(key)
+	v := self.fields.get(key)
 	return v
-}
-
-func (self *StandardLogger) Write( p []byte ) (int, error) {
-	self.Debug( string(p) )
-	return 0, nil // forever
-}
-
-func (self *StandardLogger) SetCallerDepth( depth int ) {
-	self.callerDepth = depth
 }
 
 func (self *StandardLogger) Type() NodeType {
@@ -428,8 +411,8 @@ func (self *StandardLogger) Logf(
 func (self *StandardLogger) doLog(
 	level LogLevelType, args ...interface{}) {
 
-	callerInfo := self.findCallerFunc(self.callerDepth)
-	ctxID := self.GetMDC("ctxid")
+	callerInfo := self.findCallerFunc()
+	fields := self.fields
 
 	record := NewLogRecord(
 		self.name,
@@ -440,7 +423,7 @@ func (self *StandardLogger) doLog(
 		callerInfo.FuncName,
 		"",
 		false,
-		ctxID,
+		fields,
 		args)
 	self.Handle(record)
 }
@@ -448,8 +431,8 @@ func (self *StandardLogger) doLog(
 func (self *StandardLogger) doLogf(
 	level LogLevelType, format string, args ...interface{}) {
 
-	callerInfo := self.findCallerFunc(self.callerDepth)
-	ctxID := self.GetMDC("ctxid")
+	callerInfo := self.findCallerFunc()
+	fields := self.fields
 	record := NewLogRecord(
 		self.name,
 		level,
@@ -459,7 +442,7 @@ func (self *StandardLogger) doLogf(
 		callerInfo.FuncName,
 		format,
 		true,
-		ctxID,
+		fields,
 		args)
 	self.Handle(record)
 }

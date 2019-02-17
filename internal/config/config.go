@@ -1,7 +1,7 @@
 package config
 
 import (
-	baseLogging "git.nic.ru/go-libs/go-logging"
+	baseLogging "github.com/pzabolotniy/go-logging"
 	"github.com/pzabolotniy/elastic-image/internal/logging"
 	"time"
 )
@@ -59,5 +59,6 @@ func getLogger(logConfig LoggerConfig) logging.Logger {
 	handler.SetFormatter(formatter)
 	logger.AddHandler(handler)
 
-	return logger
+	wrapper := &logging.LogContainer{logger}
+	return wrapper
 }

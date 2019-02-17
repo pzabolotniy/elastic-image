@@ -27,6 +27,7 @@ type LogRecord struct {
 	Args        []interface{}
 	Message     string
 	CtxID       string
+	CtxFields   CtxFields
 }
 
 // Initialize a logging record with interesting information.
@@ -39,7 +40,7 @@ func NewLogRecord(
 	funcName string,
 	format string,
 	useFormat bool,
-	ctxID string,
+	CtxFields CtxFields,
 	args []interface{}) *LogRecord {
 
 	return &LogRecord{
@@ -54,7 +55,7 @@ func NewLogRecord(
 		UseFormat:   useFormat,
 		Args:        args,
 		Message:     "",
-		CtxID:       ctxID,
+		CtxFields:   CtxFields,
 	}
 }
 

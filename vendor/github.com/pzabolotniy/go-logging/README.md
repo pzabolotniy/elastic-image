@@ -1,12 +1,6 @@
 go-logging
 ==========
 
-***
-Disclaimer
-
-This is fork of ```github.com/hhkbp2/go-logging```
-***
-
 ```go-logging``` is a Golang library that implements the Python-like logging facility. 
 
 As we all know that logging is essientially significant for server side programming because in general logging the only way to report what happens inside the program. 
@@ -31,7 +25,7 @@ With an obivious intention to be a port of ```logging``` for Golang, ```go-loggi
 Get this library using the standard go tool:
 
 ```bash
-go get git.nic.ru/go-libs/go-logging
+go get github.com/hhkbp2/go-logging
 ```
 
 #### Example 1: Log to standard output
@@ -40,7 +34,7 @@ go get git.nic.ru/go-libs/go-logging
 package main
 
 import (
-	"git.nic.ru/go-libs/go-logging"
+	"github.com/hhkbp2/go-logging"
 )
 
 func main() {
@@ -63,7 +57,7 @@ message: Hello 2015
 package main
 
 import (
-	"git.nic.ru/go-libs/go-logging"
+	"github.com/hhkbp2/go-logging"
 	"os"
 	"time"
 )
@@ -85,7 +79,7 @@ func main() {
 		fileMaxBytes, backupCount)
 
 	// the format for the whole log message
-	format := "%(ctxid)s %(asctime)s %(levelname)s (%(filename)s:%(lineno)d) " +
+	format := "%(asctime)s %(levelname)s (%(filename)s:%(lineno)d) " +
 		"%(name)s %(message)s"
 	// the format for the time part
 	dateFormat := "%Y-%m-%d %H:%M:%S.%3n"
@@ -98,7 +92,6 @@ func main() {
 	logger := logging.GetLogger("a.b.c")
 	logger.SetLevel(logging.LevelInfo)
 	logger.AddHandler(handler)
-	logger = logger.PutMDC("ctxid", "uniq_string")
 
 	// ensure all log messages are flushed to disk before program exits.
 	defer logging.Shutdown()
@@ -110,17 +103,17 @@ func main() {
 Compile and run the code above, it would generate a log file "./test.log" under current working directory. The log file contains a single line:
 
 ```text
-uniq_string 2015-04-04 14:20:33.714 INFO (main2.go:40) a.b.c message: Hello 2015
+2015-04-04 14:20:33.714 INFO (main2.go:40) a.b.c message: Hello 2015
 ```
 
 #### Example 3: Config Log via configuration file.
 
 Write a configuration file ```config.yml``` as the following:
 
-```yaml
+```go
 formatters:
     f:
-        format: "%(ctxid)s %(asctime)s %(levelname)s (%(filename)s:%(lineno)d) %(name)s %(message)s"
+        format: "%(asctime)s %(levelname)s (%(filename)s:%(lineno)d) %(name)s %(message)s"
         datefmt: "%Y-%m-%d %H:%M:%S.%3n"
 handlers:
     h:
@@ -148,7 +141,7 @@ and use it to config logging facility like:
 package main
 
 import (
-	"git.nic.ru/go-libs/go-logging"
+	"github.com/hhkbp2/go-logging"
 )
 
 func main() {

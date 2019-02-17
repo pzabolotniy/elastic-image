@@ -27,7 +27,7 @@
 
 [[constraint]]
   branch = "master"
-  name = "git.nic.ru/go-libs/go-logging"
+  name = "github.com/pzabolotniy/go-logging"
 
 [[constraint]]
   name = "github.com/gin-gonic/gin"
