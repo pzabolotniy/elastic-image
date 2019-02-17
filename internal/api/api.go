@@ -13,35 +13,47 @@ import (
 	"time"
 )
 
+// Env is a container for api
+// enviroment variables
+// must implement Enver interface
 type Env struct {
 	conf *config.Config
 }
 
+// Enver interface describes
+// methods for api handlers
 type Enver interface {
 	Logger() logging.Logger
-	PostResizeImage( ctx *gin.Context )
+	PostResizeImage(ctx *gin.Context)
+	Timeout() time.Duration
+	CacheTTL() int
 }
 
-func NewEnver( conf *config.Config ) Enver {
+// NewEnver is a constructor for the Enver
+func NewEnver(conf *config.Config) Enver {
 	env := &Env{
-		conf:conf,
+		conf: conf,
 	}
 	var _ Enver = env
 	return env
 }
 
+// Logger is a getter for Env.conf.APILogger
 func (env *Env) Logger() logging.Logger {
 	return env.conf.APILogger
 }
 
+// Timeout is a getter for Env.conf.Timeout
 func (env *Env) Timeout() time.Duration {
 	return env.conf.Timeout
 }
 
+// CacheTTL is a getter got Env.conf.CacheTTL
 func (env *Env) CacheTTL() int {
 	return env.conf.ImageCacheTTL
 }
 
+// PostResizeImage is a handler for the 'POST /api/v1/images/resize' request
 func (env *Env) PostResizeImage(ctx *gin.Context) {
 	logger := env.Logger()
 	var postImageResize entity.ImageInfo

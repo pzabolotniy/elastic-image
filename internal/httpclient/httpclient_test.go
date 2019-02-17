@@ -1,7 +1,6 @@
 package httpclient
 
 import (
-	"errors"
 	"fmt"
 	"github.com/pzabolotniy/elastic-image/internal/config"
 	"github.com/stretchr/testify/assert"
@@ -65,7 +64,7 @@ func TestRestClientHandlerEnv_Get_NotFound(t *testing.T) {
 	restClient := NewHTTPClient(logger, timeout)
 
 	response, err := restClient.Get(httpTestServer.URL + "/not_found")
-	expectedErr := errors.New(fmt.Sprintf("%d %s", http.StatusNotFound, http.StatusText(http.StatusNotFound)))
+	expectedErr := fmt.Errorf("%d %s", http.StatusNotFound, http.StatusText(http.StatusNotFound))
 	assert.Equalf(t, expectedErr, err, "%s - no error, ok", testName)
 
 	expectedStatusCode := http.StatusNotFound
@@ -99,7 +98,7 @@ func TestRestClientHandlerEnv_Get_InternalServerError(t *testing.T) {
 	restClient := NewHTTPClient(logger, timeout)
 
 	response, err := restClient.Get(httpTestServer.URL + "/internal_server_error")
-	expectedErr := errors.New(fmt.Sprintf("%d %s", http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+	expectedErr := fmt.Errorf("%d %s", http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	assert.Equalf(t, expectedErr, err, "%s - no error, ok", testName)
 
 	expectedStatusCode := http.StatusInternalServerError

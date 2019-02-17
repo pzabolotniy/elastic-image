@@ -9,27 +9,32 @@ import (
 	"io"
 )
 
+// Resizer is an interface that wraps Resize method
 type Resizer interface {
 	Logger() logging.Logger
-	Resize (src io.Reader, width, height uint) (resultImage []byte, err error)
+	Resize(src io.Reader, width, height uint) (resultImage []byte, err error)
 }
 
-type ResizeContainer struct {
+// Container is a container for resize parameters
+type Container struct {
 	logger logging.Logger
 }
 
-func NewResizer( logger logging.Logger ) Resizer {
-	c := &ResizeContainer{
-		logger:logger,
+// NewResizer is a constructor for Resizer
+func NewResizer(logger logging.Logger) Resizer {
+	c := &Container{
+		logger: logger,
 	}
 	return c
 }
 
-func (c *ResizeContainer) Logger() logging.Logger {
+// Logger is a getter for Container.logger
+func (c *Container) Logger() logging.Logger {
 	return c.logger
 }
 
-func (c *ResizeContainer) Resize( srcImage io.Reader, width, height uint ) ( []byte, error ) {
+// Resize resizes image according to width and height
+func (c *Container) Resize(srcImage io.Reader, width, height uint) ([]byte, error) {
 	logger := c.Logger()
 	buffer := new(bytes.Buffer)
 	var err error

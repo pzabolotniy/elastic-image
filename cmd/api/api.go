@@ -17,7 +17,7 @@ func main() {
 	logger.Fatalf("application interrupted: '%s'", err)
 }
 
-func setupRouter( router *gin.Engine, conf *config.Config ) {
+func setupRouter(router *gin.Engine, conf *config.Config) {
 	env := api.NewEnver(conf)
 
 	v1 := router.Group("/api/v1/images")

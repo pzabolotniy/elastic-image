@@ -8,22 +8,25 @@ import (
 	"time"
 )
 
-type FetchParams struct {
+// Params is a container for image download parameters
+type Params struct {
 	Timeout time.Duration
-	URL string
-	Logger logging.Logger
+	URL     string
+	Logger  logging.Logger
 }
 
-func NewFetchParams( timeout time.Duration, url string, logger logging.Logger ) *FetchParams {
-	params := &FetchParams{
-		Timeout:timeout,
-		URL:url,
-		Logger:logger,
+// NewFetchParams is a constructor for Params
+func NewFetchParams(timeout time.Duration, url string, logger logging.Logger) *Params {
+	params := &Params{
+		Timeout: timeout,
+		URL:     url,
+		Logger:  logger,
 	}
 	return params
 }
 
-func GetImage( params *FetchParams ) ( io.Reader, error ) {
+// GetImage downloads image by *Params
+func GetImage(params *Params) (io.Reader, error) {
 	logger := params.Logger
 	timeout := params.Timeout
 	URL := params.URL
