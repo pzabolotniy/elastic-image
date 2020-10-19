@@ -10,6 +10,7 @@ import (
 	"github.com/pzabolotniy/elastic-image/internal/image/fetch"
 	"github.com/pzabolotniy/elastic-image/internal/image/resize"
 	"github.com/pzabolotniy/elastic-image/internal/logging"
+	"github.com/pzabolotniy/elastic-image/internal/middleware"
 )
 
 // ImageInfo is a DTO for 'POST /api/v1/images/resize' request
@@ -21,7 +22,7 @@ type ImageInfo struct {
 
 // PostResizeImage is a handler for the 'POST /api/v1/images/resize' request
 func (env *Env) PostResizeImage(c *gin.Context) {
-	ctx := c.Request.Context()
+	ctx := middleware.GetRequestCtx(c)
 	logger := logging.FromContext(ctx)
 	imageConf := env.imageConf
 	var postImageResize ImageInfo
@@ -65,7 +66,7 @@ func prepareOKResponse(c *gin.Context, image []byte, cacheTTL time.Duration) {
 
 	w.Header().Set("Content-Type", "image/jpeg")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(image)))
-	w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d, public", cacheTTL))
+	w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d, public", int(cacheTTL/time.Second)))
 	if _, err := w.Write(image); err != nil {
 		logger.WithError(err).Error("unable to write response")
 	}
