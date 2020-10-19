@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
+	"bou.ke/monkey"
 	"github.com/nfnt/resize"
 	"github.com/pzabolotniy/elastic-image/internal/logging"
 	"github.com/pzabolotniy/elastic-image/internal/tests/mocks"
-	"github.com/pzabolotniy/monkey"
 	"github.com/stretchr/testify/assert"
 )
 
