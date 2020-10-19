@@ -25,6 +25,7 @@ func setupRouter(router *gin.Engine, conf *config.AppConfig, logger logging.Logg
 	env := api.NewEnv(api.WithImageConf(conf.ImageConfig))
 
 	router.Use(middleware.WithLoggerMw(logger))
+	router.Use(middleware.WithUniqRequestID)
 	router.Use(middleware.LogRequestBoundariesMw)
 
 	v1 := router.Group("/api/v1/images")

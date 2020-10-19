@@ -23,13 +23,14 @@ import (
 )
 
 func TestPostImageResize(t *testing.T) {
-	router := gin.Default()
+	router := gin.New()
+	cacheTTL := 3600
 	testConfig := &config.AppConfig{
 		ServerConfig: &config.ServerConfig{
 			Bind: "",
 		},
 		ImageConfig: &config.ImageConfig{
-			CacheTTL:     3600 * time.Second,
+			CacheTTL:     time.Duration(cacheTTL) * time.Second,
 			FetchTimeout: 10 * time.Second,
 		},
 	}
@@ -60,7 +61,6 @@ func TestPostImageResize(t *testing.T) {
 	mockedResponse.On("RawBody").Return(imageBytes)
 	expectedImage := bytes.NewReader(imageBytes)
 
-	//mockedResizer := &resizeMocks.Resizer{}
 	monkey.Patch(resize.Resize, func(ctx context.Context, srcImage io.Reader, width, height uint) ([]byte, error) {
 		assert.Equal(t, expectedWidth, int(width), "resize.Resize width ok")
 		assert.Equal(t, expectedHeight, int(height), "resize.Resize height ok")
@@ -83,17 +83,16 @@ func TestPostImageResize(t *testing.T) {
 	assert.Equalf(t, expectedBodyBytes, gotBodybytes, "%s - response ok", testName)
 	apiHeaders := apiResponse.Header()
 	contentLength := len(mockedImage)
-	cacheTTL := testConfig.ImageConfig.CacheTTL
 	expectedHeaders := http.Header{
 		"Content-Type":   []string{"image/jpeg"},
 		"Content-Length": []string{fmt.Sprintf("%d", contentLength)},
 		"Cache-Control":  []string{fmt.Sprintf("max-age=%d, public", cacheTTL)},
+		"X-Request-Id":   []string{apiHeaders.Get("X-Request-Id")}, // will not assert random uuid
 	}
 	assert.Equalf(t, expectedHeaders, apiHeaders, "%s - response headers ok", testName)
 
 	mockedBrowser.AssertExpectations(t)
 	mockedResponse.AssertExpectations(t)
-	//mockedResizer.AssertExpectations(t)
 }
 
 func makeTestRequest(r http.Handler, method, path string, body io.Reader, headers map[string][]string) *httptest.ResponseRecorder {
