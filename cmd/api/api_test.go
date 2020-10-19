@@ -2,16 +2,8 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/pzabolotniy/elastic-image/internal/config"
-	"github.com/pzabolotniy/elastic-image/internal/httpclient"
-	httpMocks "github.com/pzabolotniy/elastic-image/internal/httpclient/mocks"
-	"github.com/pzabolotniy/elastic-image/internal/image/resize"
-	resizeMocks "github.com/pzabolotniy/elastic-image/internal/image/resize/mocks"
-	"github.com/pzabolotniy/elastic-image/internal/logging"
-	"github.com/pzabolotniy/monkey"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -19,14 +11,32 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/pzabolotniy/elastic-image/internal/config"
+	"github.com/pzabolotniy/elastic-image/internal/httpclient"
+	httpMocks "github.com/pzabolotniy/elastic-image/internal/httpclient/mocks"
+	"github.com/pzabolotniy/elastic-image/internal/image/resize"
+	"github.com/pzabolotniy/elastic-image/internal/logging"
+	"github.com/pzabolotniy/monkey"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPostImageResize(t *testing.T) {
 	router := gin.Default()
-	testConfig := config.GetConfig()
+	testConfig := &config.AppConfig{
+		ServerConfig: &config.ServerConfig{
+			Bind: "",
+		},
+		ImageConfig: &config.ImageConfig{
+			CacheTTL:     3600 * time.Second,
+			FetchTimeout: 10 * time.Second,
+		},
+	}
+	testLogger := logging.GetLogger()
 	var nilError error
 
-	setupRouter(router, testConfig)
+	setupRouter(router, testConfig, testLogger)
 
 	testRequest := struct {
 		method string
@@ -35,8 +45,8 @@ func TestPostImageResize(t *testing.T) {
 	testName := t.Name()
 
 	url := "http://any-host.local/image.jpeg"
-	width := 1024
-	height := 800
+	expectedWidth := 1024
+	expectedHeight := 800
 
 	mockedImage := "i.am.image"
 	mockedBrowser := &httpMocks.Browser{}
@@ -48,15 +58,17 @@ func TestPostImageResize(t *testing.T) {
 	imageBytes := []byte(mockedImage)
 	mockedBrowser.On("Get", url).Return(mockedResponse, nilError)
 	mockedResponse.On("RawBody").Return(imageBytes)
-	imageReader := bytes.NewReader(imageBytes)
+	expectedImage := bytes.NewReader(imageBytes)
 
-	mockedResizer := &resizeMocks.Resizer{}
-	monkey.Patch(resize.NewResizer, func(logger logging.Logger) resize.Resizer {
-		return mockedResizer
+	//mockedResizer := &resizeMocks.Resizer{}
+	monkey.Patch(resize.Resize, func(ctx context.Context, srcImage io.Reader, width, height uint) ([]byte, error) {
+		assert.Equal(t, expectedWidth, int(width), "resize.Resize width ok")
+		assert.Equal(t, expectedHeight, int(height), "resize.Resize height ok")
+		assert.Equal(t, expectedImage, srcImage, "resize.Resize image ok")
+		return imageBytes, nil
 	})
-	mockedResizer.On("Resize", imageReader, uint(width), uint(height)).Return(imageBytes, nilError)
 
-	inputBody := fmt.Sprintf(`{"url":"%s","width":%d,"heigth":%d}`, url, width, height)
+	inputBody := fmt.Sprintf(`{"url":"%s","width":%d,"heigth":%d}`, url, expectedWidth, expectedHeight)
 	reader := strings.NewReader(inputBody)
 	headers := make(map[string][]string)
 	apiResponse := makeTestRequest(router, testRequest.method, testRequest.uri, reader, headers)
@@ -71,17 +83,17 @@ func TestPostImageResize(t *testing.T) {
 	assert.Equalf(t, expectedBodyBytes, gotBodybytes, "%s - response ok", testName)
 	apiHeaders := apiResponse.Header()
 	contentLength := len(mockedImage)
-	cacheTTL := testConfig.ImageCacheTTL
+	cacheTTL := testConfig.ImageConfig.CacheTTL
 	expectedHeaders := http.Header{
-		"Content-Type": []string{"image/jpeg"},
-		"Content-Length": []string{fmt.Sprintf("%d",contentLength)},
-		"Cache-Control": []string{fmt.Sprintf("max-age=%d, public", cacheTTL)},
+		"Content-Type":   []string{"image/jpeg"},
+		"Content-Length": []string{fmt.Sprintf("%d", contentLength)},
+		"Cache-Control":  []string{fmt.Sprintf("max-age=%d, public", cacheTTL)},
 	}
 	assert.Equalf(t, expectedHeaders, apiHeaders, "%s - response headers ok", testName)
 
 	mockedBrowser.AssertExpectations(t)
 	mockedResponse.AssertExpectations(t)
-	mockedResizer.AssertExpectations(t)
+	//mockedResizer.AssertExpectations(t)
 }
 
 func makeTestRequest(r http.Handler, method, path string, body io.Reader, headers map[string][]string) *httptest.ResponseRecorder {

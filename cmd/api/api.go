@@ -4,25 +4,28 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pzabolotniy/elastic-image/internal/api"
 	"github.com/pzabolotniy/elastic-image/internal/config"
+	"github.com/pzabolotniy/elastic-image/internal/logging"
+	"github.com/pzabolotniy/elastic-image/internal/middleware"
 )
 
 func main() {
-	conf := config.GetConfig()
-	logger := conf.APILogger
+	appConf := config.GetAppConfig()
+	logger := logging.GetLogger()
 
 	router := gin.Default()
-	setupRouter(router, conf)
+	setupRouter(router, appConf, logger)
 
-	err := router.Run(conf.Bind)
-	logger.Fatalf("application interrupted: '%s'", err)
+	err := router.Run(appConf.ServerConfig.Bind)
+	if err != nil {
+		logger.WithError(err).Error("application interrupted")
+	}
 }
 
-func setupRouter(router *gin.Engine, conf *config.Config) {
-	env := api.NewEnver(conf)
+func setupRouter(router *gin.Engine, conf *config.AppConfig, logger logging.Logger) {
+	env := api.NewEnv(api.WithImageConf(conf.ImageConfig))
 
-	router.Use(env.PrepareCtxID)
-	router.Use(env.LogInput)
-	router.Use(env.LogCompleted) // this middleware MUST be the last one in a row
+	router.Use(middleware.WithLoggerMw(logger))
+	router.Use(middleware.LogRequestBoundariesMw)
 
 	v1 := router.Group("/api/v1/images")
 	v1.POST("/resize", env.PostResizeImage)

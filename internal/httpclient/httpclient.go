@@ -2,15 +2,11 @@ package httpclient
 
 import (
 	"errors"
-	"github.com/pzabolotniy/elastic-image/internal/logging"
-	"gopkg.in/resty.v1"
 	"net/http"
 	"time"
-)
 
-// list of implemented HTTP methods
-const (
-	methodGet = "GET"
+	"github.com/pzabolotniy/elastic-image/internal/logging"
+	"gopkg.in/resty.v1"
 )
 
 // Env is a container for http client parameters
@@ -70,7 +66,7 @@ func (client *Env) Logger() logging.Logger {
 
 // Get implements http GET method
 func (client *Env) Get(url string) (Responser, error) {
-	return client.ExecuteRequest(methodGet, url)
+	return client.ExecuteRequest(http.MethodGet, url)
 }
 
 // ExecuteRequest implements http request with any method
@@ -79,7 +75,7 @@ func (client *Env) ExecuteRequest(method string, url string) (Responser, error) 
 	timeout := client.Timeout()
 
 	if len(url) == 0 {
-		logger.Warnf("Empty URL of the remote service")
+		logger.Warn("Empty URL of the remote service")
 		return nil, errors.New("Got empty URL of the remote service")
 	}
 
@@ -87,22 +83,29 @@ func (client *Env) ExecuteRequest(method string, url string) (Responser, error) 
 	var err error
 	rClient := client.client
 
-	rClient.SetTimeout(time.Duration(timeout) * time.Millisecond)
+	rClient.SetTimeout(timeout)
 	request := rClient.R()
 	switch method {
-	case methodGet:
-		logger.Tracef("request: %s %s", methodGet, url)
+	case http.MethodGet:
+		logger.WithFields(logging.Fields{
+			"http_method": method,
+			"url":         url,
+		}).Trace("http request")
 		httpServiceResponse, err = request.Get(url)
+		if err != nil {
+			logger.WithError(err).Error("request failed")
+			return nil, errors.New("request failed")
+		}
 	default:
-		logger.Warnf("HTTP request method %s is not implemented", method)
+		logger.WithField("http_method", method).Warn("http method is not implemented")
 		return nil, errors.New("method is not implemented")
 	}
 
 	statusLine := httpServiceResponse.Status()
 	statuscode := httpServiceResponse.StatusCode()
 	responseSize := httpServiceResponse.Size()
-	logger.Tracef("response status: %s", statusLine)
-	logger.Tracef("response size in bytes: %d", responseSize)
+	logger.WithField("status_line", statusLine).Trace("response status")
+	logger.WithField("response_size", responseSize).Trace("response size in bytes")
 	var responseBytes []byte
 	if responseSize > 0 {
 		responseBytes = httpServiceResponse.Body()
@@ -110,12 +113,8 @@ func (client *Env) ExecuteRequest(method string, url string) (Responser, error) 
 
 	restResponse := NewResponse(statuscode, statusLine, responseBytes)
 
-	if err == nil {
-		if !restResponse.IsSuccess() {
-			err = errors.New(statusLine)
-		}
-	} else {
-		logger.Warnf("destination is unavailable: '%s'", err.Error())
+	if !restResponse.IsSuccess() {
+		err = errors.New(statusLine)
 	}
 
 	return restResponse, err
