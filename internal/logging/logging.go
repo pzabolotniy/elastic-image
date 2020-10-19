@@ -1,3 +1,6 @@
+// Package logging is a local wrapper around logrus package
+// if, suddenly, logrus will become deprecated module
+// it will be easy to move to another solution
 package logging
 
 import (
@@ -28,13 +31,15 @@ type Logger interface {
 	WithFields(fields Fields) Logger
 }
 
+// GetLogger is a Logger getter with default settings
 func GetLogger() Logger {
 	logger := log.New()
-	log.SetFormatter(&log.TextFormatter{})
-	log.SetOutput(os.Stdout)
-	log.SetLevel(log.TraceLevel)
-	log.AddHook(GetFileLineHook())
+	logger.SetFormatter(&log.TextFormatter{})
+	logger.SetLevel(log.TraceLevel)
+	logger.SetOutput(os.Stdout)
+	logger.AddHook(GetFileLineHook())
 	l := &logWrapper{logger.WithFields(nil)}
+
 	return l
 }
 
@@ -52,10 +57,13 @@ func (lw *logWrapper) WithFields(fields Fields) Logger {
 
 type logCtx struct{}
 
+// WithContext puts logger to the context
 func WithContext(ctx context.Context, logger Logger) context.Context {
 	return context.WithValue(ctx, logCtx{}, logger)
 }
 
+// FromContext extracts Logger from context and returns itself
+// otherwise, creates default one logger
 func FromContext(ctx context.Context) Logger {
 	logger, ok := ctx.Value(logCtx{}).(Logger)
 	if !ok {

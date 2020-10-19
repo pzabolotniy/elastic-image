@@ -81,6 +81,6 @@ func prepareApp500ErrorResponse(ctx *gin.Context) {
 	prepareAppErrorResponse(ctx, httpCode)
 }
 
-func prepareAppErrorResponse(c *gin.Context, HTTPCode int) {
-	c.JSON(HTTPCode, nil)
+func prepareAppErrorResponse(c *gin.Context, httpCode int) {
+	c.JSON(httpCode, nil)
 }

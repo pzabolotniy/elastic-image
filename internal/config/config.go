@@ -1,24 +1,26 @@
+// Package config contains config DAO
 package config
 
 import "time"
 
-// Config is a container for application config
+// AppConfig is a container for application config
 type AppConfig struct {
 	ServerConfig *ServerConfig
-	//Timeout       time.Duration
-	ImageConfig *ImageConfig
+	ImageConfig  *ImageConfig
 }
 
+// ServerConfig contains http server settings
 type ServerConfig struct {
 	Bind string
 }
 
+// ImageConfig contains image settings
 type ImageConfig struct {
 	CacheTTL     time.Duration
 	FetchTimeout time.Duration
 }
 
-// GetConfig returns *Config
+// GetAppConfig returns *Config
 func GetAppConfig() *AppConfig {
 	bind := ":8080"
 	imageCacheTTL := 60 * 60 * time.Second

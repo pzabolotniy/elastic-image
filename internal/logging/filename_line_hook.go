@@ -9,7 +9,13 @@ import (
 )
 
 const (
-	StartSkip              int    = 2
+	// StartDepth is a depth of stack trace,
+	// because of log-wrapper, which is used here
+	// this start depth is required to find caller correctly
+	StartDepth int = 2
+	// PathLen is a count of the directories to log, including file itself
+	PathLen int = 2
+	// DefaultFileNameLineKey is a field name in a logged record
 	DefaultFileNameLineKey string = "where"
 )
 
@@ -37,7 +43,7 @@ func (hook *FileLineHook) Fire(entry *log.Entry) error {
 		line int
 	)
 	for i := 0; i < 10; i++ {
-		file, line = getCaller(StartSkip + i)
+		file, line = getCaller(StartDepth + i)
 		if !strings.HasPrefix(file, "logrus") {
 			break
 		}
@@ -47,7 +53,7 @@ func (hook *FileLineHook) Fire(entry *log.Entry) error {
 	return nil
 }
 
-func getCaller(skip int) (string, int) {
+func getCaller(skip int) (file string, line int) {
 	_, file, line, ok := runtime.Caller(skip)
 	if !ok {
 		return "", 0
@@ -57,7 +63,7 @@ func getCaller(skip int) (string, int) {
 	for i := len(file) - 1; i > 0; i-- {
 		if file[i] == '/' {
 			n++
-			if n >= 2 {
+			if n >= PathLen {
 				file = file[i+1:]
 				break
 			}

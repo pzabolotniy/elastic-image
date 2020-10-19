@@ -12,7 +12,7 @@ func main() {
 	appConf := config.GetAppConfig()
 	logger := logging.GetLogger()
 
-	router := gin.Default()
+	router := gin.New()
 	setupRouter(router, appConf, logger)
 
 	err := router.Run(appConf.ServerConfig.Bind)

@@ -5,20 +5,22 @@ import (
 	"github.com/pzabolotniy/elastic-image/internal/logging"
 )
 
+// WithLoggerMw injects logger to the request context
 func WithLoggerMw(logger logging.Logger) gin.HandlerFunc {
 	mw := func(c *gin.Context) {
 		r := c.Request
 		ctx := logging.WithContext(r.Context(), logger)
-		r.WithContext(ctx)
+		_ = r.WithContext(ctx)
 		c.Next()
 	}
 	return mw
 }
 
+// LogRequestBoundariesMw logs start and end of the request
 func LogRequestBoundariesMw(c *gin.Context) {
 	logger := logging.FromContext(c.Request.Context())
 	uri := c.Request.URL.String()
-	logger.WithField("path", uri).Trace("Request started")
+	logger.WithField("path", uri).Trace("REQUEST STARTED")
 	c.Next()
-	logger.Trace("Request finished")
+	logger.Trace("REQUEST FINISHED")
 }
