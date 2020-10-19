@@ -1,9 +1,18 @@
 # elastic-image
-image resize service
+ * starts http server
+ * implements JSON API
+ * downloads image by URL
+ * resize it with width and heigth passed into the request
+ * returns to the client
+
+## Launch linter with command
+```
+golangci-lint run
+```
 
 ## Tests launch command
 ```
-go test -gcflags "all=-l" ./...
+ go test -count=1 -cover -gcflags "all=-l" ./...
 ```
 ## Usage example
 ```bash

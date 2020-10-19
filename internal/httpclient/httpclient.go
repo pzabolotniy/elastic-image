@@ -1,3 +1,5 @@
+// Package httpclient implements some funcs
+// to make http calls
 package httpclient
 
 import (
@@ -70,13 +72,13 @@ func (client *Env) Get(url string) (Responser, error) {
 }
 
 // ExecuteRequest implements http request with any method
-func (client *Env) ExecuteRequest(method string, url string) (Responser, error) {
+func (client *Env) ExecuteRequest(method, url string) (Responser, error) {
 	logger := client.Logger()
 	timeout := client.Timeout()
 
-	if len(url) == 0 {
+	if url == "" {
 		logger.Warn("Empty URL of the remote service")
-		return nil, errors.New("Got empty URL of the remote service")
+		return nil, errors.New("got empty URL of the remote service")
 	}
 
 	var httpServiceResponse *resty.Response

@@ -1,3 +1,5 @@
+// Package fetch contains some funcs
+// to download media data
 package fetch
 
 import (
