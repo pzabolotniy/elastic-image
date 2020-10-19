@@ -1,30 +1,24 @@
 package middleware
 
 import (
-	"bytes"
 	"github.com/gin-gonic/gin"
-	"io/ioutil"
+	"github.com/pzabolotniy/elastic-image/internal/logging"
 )
 
-// GetInputData duplicates body stream
-// it is used to log input body
-func GetInputData(ctx *gin.Context) *string {
-	var bodyContent string
-
-	if ctx.Request.Body != nil {
-		buf, err := ioutil.ReadAll(ctx.Request.Body)
-		if err != nil {
-			// some error handling should be done here
-		}
-		rdr1 := ioutil.NopCloser(bytes.NewBuffer(buf))
-		rdr2 := ioutil.NopCloser(bytes.NewBuffer(buf)) //We have to create a new Buffer, because rdr1 will be read.
-
-		bodyBuffer := new(bytes.Buffer)
-		bodyBuffer.ReadFrom(rdr1)
-		bodyContent = bodyBuffer.String()
-
-		ctx.Request.Body = rdr2
+func WithLoggerMw(logger logging.Logger) gin.HandlerFunc {
+	mw := func(c *gin.Context) {
+		r := c.Request
+		ctx := logging.WithContext(r.Context(), logger)
+		r.WithContext(ctx)
+		c.Next()
 	}
+	return mw
+}
 
-	return &bodyContent
+func LogRequestBoundariesMw(c *gin.Context) {
+	logger := logging.FromContext(c.Request.Context())
+	uri := c.Request.URL.String()
+	logger.WithField("path", uri).Trace("Request started")
+	c.Next()
+	logger.Trace("Request finished")
 }

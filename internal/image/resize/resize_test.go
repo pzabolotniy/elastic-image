@@ -1,23 +1,26 @@
 package resize
 
 import (
-	"github.com/nfnt/resize"
-	"github.com/pzabolotniy/elastic-image/internal/config"
-	"github.com/pzabolotniy/elastic-image/internal/tests/mocks"
-	"github.com/pzabolotniy/monkey"
-	"github.com/stretchr/testify/assert"
+	"context"
 	"image"
 	"image/jpeg"
 	"io"
 	"io/ioutil"
 	"strings"
 	"testing"
+
+	"github.com/nfnt/resize"
+	"github.com/pzabolotniy/elastic-image/internal/logging"
+	"github.com/pzabolotniy/elastic-image/internal/tests/mocks"
+	"github.com/pzabolotniy/monkey"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestResizeContainer_Resize(t *testing.T) {
 	testName := t.Name()
-	testConfig := config.GetConfig()
-	testLogger := testConfig.APILogger
+	ctx := context.Background()
+	testLogger := logging.GetLogger()
+	ctx = logging.WithContext(ctx, testLogger)
 	var nilError error
 
 	testImage := "i.am.image"
@@ -44,8 +47,7 @@ func TestResizeContainer_Resize(t *testing.T) {
 		return nilError
 	})
 
-	resizer := NewResizer(testLogger)
-	newImage, err := resizer.Resize(imageReader, width, heigth)
+	newImage, err := Resize(ctx, imageReader, width, heigth)
 
 	imageBytes, err := ioutil.ReadAll(imageReader)
 	if err != nil {

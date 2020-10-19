@@ -2,11 +2,14 @@ package httpclient
 
 import (
 	"fmt"
-	"github.com/pzabolotniy/elastic-image/internal/config"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
+
+	"github.com/pzabolotniy/elastic-image/internal/config"
+	"github.com/pzabolotniy/elastic-image/internal/logging"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRestClientHandlerEnv_Get_OK(t *testing.T) {
@@ -24,11 +27,17 @@ func TestRestClientHandlerEnv_Get_OK(t *testing.T) {
 		w.Write([]byte(stubResponse))
 	}))
 
-	conf := config.GetConfig()
-	logger := conf.APILogger
-	timeout := conf.Timeout
-
-	restClient := NewHTTPClient(logger, timeout)
+	conf := config.AppConfig{
+		ServerConfig: &config.ServerConfig{
+			Bind: "",
+		},
+		ImageConfig: &config.ImageConfig{
+			CacheTTL:     3600 * time.Second,
+			FetchTimeout: 10 * time.Second,
+		},
+	}
+	logger := logging.GetLogger()
+	restClient := NewHTTPClient(logger, conf.ImageConfig.FetchTimeout)
 
 	response, err := restClient.Get(httpTestServer.URL + "/ok")
 	assert.NoErrorf(t, err, "%s - no error, ok", testName)
@@ -57,11 +66,17 @@ func TestRestClientHandlerEnv_Get_NotFound(t *testing.T) {
 		w.Write([]byte(stubResponse))
 	}))
 
-	conf := config.GetConfig()
-	logger := conf.APILogger
-	timeout := conf.Timeout
-
-	restClient := NewHTTPClient(logger, timeout)
+	conf := config.AppConfig{
+		ServerConfig: &config.ServerConfig{
+			Bind: "",
+		},
+		ImageConfig: &config.ImageConfig{
+			CacheTTL:     3600 * time.Second,
+			FetchTimeout: 10 * time.Second,
+		},
+	}
+	logger := logging.GetLogger()
+	restClient := NewHTTPClient(logger, conf.ImageConfig.FetchTimeout)
 
 	response, err := restClient.Get(httpTestServer.URL + "/not_found")
 	expectedErr := fmt.Errorf("%d %s", http.StatusNotFound, http.StatusText(http.StatusNotFound))
@@ -91,11 +106,17 @@ func TestRestClientHandlerEnv_Get_InternalServerError(t *testing.T) {
 		w.Write([]byte(stubResponse))
 	}))
 
-	conf := config.GetConfig()
-	logger := conf.APILogger
-	timeout := conf.Timeout
-
-	restClient := NewHTTPClient(logger, timeout)
+	conf := config.AppConfig{
+		ServerConfig: &config.ServerConfig{
+			Bind: "",
+		},
+		ImageConfig: &config.ImageConfig{
+			CacheTTL:     3600 * time.Second,
+			FetchTimeout: 10 * time.Second,
+		},
+	}
+	logger := logging.GetLogger()
+	restClient := NewHTTPClient(logger, conf.ImageConfig.FetchTimeout)
 
 	response, err := restClient.Get(httpTestServer.URL + "/internal_server_error")
 	expectedErr := fmt.Errorf("%d %s", http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))

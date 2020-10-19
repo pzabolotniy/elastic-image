@@ -2,54 +2,32 @@ package resize
 
 import (
 	"bytes"
-	"github.com/nfnt/resize"
-	"github.com/pzabolotniy/elastic-image/internal/logging"
+	"context"
 	"image"
 	"image/jpeg"
 	"io"
+
+	"github.com/pzabolotniy/elastic-image/internal/logging"
+
+	"github.com/nfnt/resize"
 )
 
-// Resizer is an interface that wraps Resize method
-type Resizer interface {
-	Logger() logging.Logger
-	Resize(src io.Reader, width, height uint) (resultImage []byte, err error)
-}
-
-// Container is a container for resize parameters
-type Container struct {
-	logger logging.Logger
-}
-
-// NewResizer is a constructor for Resizer
-func NewResizer(logger logging.Logger) Resizer {
-	c := &Container{
-		logger: logger,
-	}
-	return c
-}
-
-// Logger is a getter for Container.logger
-func (c *Container) Logger() logging.Logger {
-	return c.logger
-}
-
 // Resize resizes image according to width and height
-func (c *Container) Resize(srcImage io.Reader, width, height uint) ([]byte, error) {
-	logger := c.Logger()
+func Resize(ctx context.Context, srcImage io.Reader, width, height uint) ([]byte, error) {
+	logger := logging.FromContext(ctx)
 	buffer := new(bytes.Buffer)
-	var err error
 
-	image, _, err := image.Decode(srcImage)
+	decodeImage, _, err := image.Decode(srcImage)
 	if err != nil {
-		logger.Errorf("decode image failed: '%s'", err)
-		return buffer.Bytes(), err
+		logger.WithError(err).Error("decode image failed")
+		return nil, err
 	}
 
-	resizedImage := resize.Resize(width, height, image, resize.Lanczos3)
+	resizedImage := resize.Resize(width, height, decodeImage, resize.Lanczos3)
 	err = jpeg.Encode(buffer, resizedImage, nil)
 	if err != nil {
-		logger.Errorf("get write for image failed: '%s'", err)
-		return buffer.Bytes(), err
+		logger.WithError(err).Error("jpeg Encode image failed")
+		return nil, err
 	}
 
 	return buffer.Bytes(), err
