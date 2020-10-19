@@ -1,8 +1,7 @@
-// Package httpclient implements some funcs
-// to make http calls
 package httpclient
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"time"
@@ -11,79 +10,49 @@ import (
 	"gopkg.in/resty.v1"
 )
 
-// Env is a container for http client parameters
-// must implement Browser interface
-type Env struct {
+// Client is a container for http client parameters
+type Client struct {
 	client  *resty.Client
 	timeout time.Duration
-	logger  logging.Logger
-}
-
-// Browser describes methods
-// which can be made by http client
-type Browser interface {
-	Logger() logging.Logger
-	ExecuteRequest(method string, url string) (Responser, error)
-	Get(url string) (Responser, error)
 }
 
 // ResponseContainer contains http response data
-// must implement Responser
 type ResponseContainer struct {
-	rawBody    []byte
-	statusCode int
-	statusLine string
-}
-
-// Responser contains getters to http response data
-type Responser interface {
-	RawBody() []byte
-	StatusCode() int
-	IsSuccess() bool
+	RawBody    []byte
+	StatusCode int
+	StatusLine string
 }
 
 // NewHTTPClient is a constructor for Browser
-func NewHTTPClient(logger logging.Logger, timeout time.Duration) Browser {
+func NewHTTPClient(timeout time.Duration) *Client {
 	restClient := resty.New()
 
-	env := &Env{
+	env := &Client{
 		client:  restClient,
 		timeout: timeout,
-		logger:  logger,
 	}
-	var _ Browser = env
 
 	return env
 }
 
-// Timeout is a getter for Env.timeout
-func (client *Env) Timeout() time.Duration {
-	return client.timeout
-}
-
-// Logger is a getter for Env.logger
-func (client *Env) Logger() logging.Logger {
-	return client.logger
-}
-
 // Get implements http GET method
-func (client *Env) Get(url string) (Responser, error) {
-	return client.ExecuteRequest(http.MethodGet, url)
+func (c *Client) Get(ctx context.Context, url string) (*ResponseContainer, error) {
+	return c.ExecuteRequest(ctx, http.MethodGet, url)
 }
 
 // ExecuteRequest implements http request with any method
-func (client *Env) ExecuteRequest(method, url string) (Responser, error) {
-	logger := client.Logger()
-	timeout := client.Timeout()
+func (c *Client) ExecuteRequest(ctx context.Context, method, url string) (*ResponseContainer, error) {
+	logger := logging.FromContext(ctx)
+	timeout := c.timeout
 
 	if url == "" {
 		logger.Warn("Empty URL of the remote service")
 		return nil, errors.New("got empty URL of the remote service")
 	}
 
-	var httpServiceResponse *resty.Response
+	var httpResponse *resty.Response
 	var err error
-	rClient := client.client
+	rClient := c.client
 
 	rClient.SetTimeout(timeout)
 	request := rClient.R()
@@ -93,7 +62,7 @@ func (client *Env) ExecuteRequest(method, url string) (Responser, error) {
 			"http_method": method,
 			"url":         url,
 		}).Trace("http request")
-		httpServiceResponse, err = request.Get(url)
+		httpResponse, err = request.Get(url)
 		if err != nil {
 			logger.WithError(err).Error("request failed")
 			return nil, errors.New("request failed")
@@ -103,17 +72,17 @@ func (client *Env) ExecuteRequest(method, url string) (Responser, error) {
 		return nil, errors.New("method is not implemented")
 	}
 
-	statusLine := httpServiceResponse.Status()
-	statuscode := httpServiceResponse.StatusCode()
-	responseSize := httpServiceResponse.Size()
+	statusLine := httpResponse.Status()
+	statuscode := httpResponse.StatusCode()
+	responseSize := httpResponse.Size()
 	logger.WithField("status_line", statusLine).Trace("response status")
 	logger.WithField("response_size", responseSize).Trace("response size in bytes")
-	var responseBytes []byte
+	var responseBody []byte
 	if responseSize > 0 {
-		responseBytes = httpServiceResponse.Body()
+		responseBody = httpResponse.Body()
 	}
 
-	restResponse := NewResponse(statuscode, statusLine, responseBytes)
+	restResponse := NewResponse(statuscode, statusLine, responseBody)
 
 	if !restResponse.IsSuccess() {
 		err = errors.New(statusLine)
@@ -124,31 +93,20 @@ func (client *Env) ExecuteRequest(method, url string) (Responser, error) {
 
 // NewResponse is constructor for Responser interface
 // contains rest-call response code and body
-func NewResponse(statusCode int, statusLine string, body []byte) Responser {
+func NewResponse(statusCode int, statusLine string, body []byte) *ResponseContainer {
 	restResponse := &ResponseContainer{
-		statusCode: statusCode,
-		rawBody:    body,
-		statusLine: statusLine,
+		StatusCode: statusCode,
+		RawBody:    body,
+		StatusLine: statusLine,
 	}
-	var _ Responser = restResponse
 	return restResponse
-}
-
-// RawBody is a getter for ResponseContainer.rawBody
-func (resp *ResponseContainer) RawBody() []byte {
-	return resp.rawBody
-}
-
-// StatusCode is a getter for ResponseContainer.statusCode
-func (resp *ResponseContainer) StatusCode() int {
-	return resp.statusCode
 }
 
 // IsSuccess returns true if http code is any if 2XX
 // otherwise returns false
 func (resp *ResponseContainer) IsSuccess() bool {
 	success := false
-	switch resp.statusCode {
+	switch resp.StatusCode {
 	case http.StatusOK:
 		success = true
 	case http.StatusCreated:

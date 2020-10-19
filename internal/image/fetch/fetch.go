@@ -33,14 +33,13 @@ func GetImage(ctx context.Context, params *Params) (io.Reader, error) {
 	timeout := params.Timeout
 	URL := params.URL
 
-	httpClient := httpclient.NewHTTPClient(logger, timeout)
-	response, err := httpClient.Get(URL)
+	httpClient := httpclient.NewHTTPClient(timeout)
+	response, err := httpClient.Get(ctx, URL)
 	if err != nil {
 		logger.WithError(err).WithField("url", URL).Error("fetch image failed")
 		return nil, err
 	}
 
-	imageBin := response.RawBody()
-	imageReader := bytes.NewReader(imageBin)
+	imageReader := bytes.NewReader(response.RawBody)
 	return imageReader, nil
 }
