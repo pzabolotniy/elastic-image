@@ -1,6 +1,7 @@
 package httpclient
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -25,18 +26,20 @@ func TestRestClientHandlerEnv_Get_OK(t *testing.T) {
 	}))
 
 	logger := logging.GetLogger()
+	ctx := context.Background()
+	ctx = logging.WithContext(ctx, logger)
 	fetchTimeout := 10 * time.Second
-	restClient := NewHTTPClient(logger, fetchTimeout)
+	restClient := NewHTTPClient(fetchTimeout)
 
-	response, err := restClient.Get(httpTestServer.URL + "/ok")
+	response, err := restClient.Get(ctx, httpTestServer.URL+"/ok")
 	assert.NoError(t, err, "no error, ok")
 
 	expectedStatusCode := http.StatusOK
-	gotStatusCode := response.StatusCode()
+	gotStatusCode := response.StatusCode
 	assert.Equal(t, expectedStatusCode, gotStatusCode, "status code ok")
 
 	expectedBody := []byte(stubResponse)
-	gotBody := response.RawBody()
+	gotBody := response.RawBody
 	assert.Equal(t, expectedBody, gotBody, "%s - body ok")
 }
 
@@ -55,18 +58,20 @@ func TestRestClientHandlerEnv_Get_NotFound(t *testing.T) {
 
 	logger := logging.GetLogger()
 	fetchTimeout := 10 * time.Second
-	restClient := NewHTTPClient(logger, fetchTimeout)
+	ctx := context.Background()
+	ctx = logging.WithContext(ctx, logger)
+	restClient := NewHTTPClient(fetchTimeout)
 
-	response, err := restClient.Get(httpTestServer.URL + "/not_found")
+	response, err := restClient.Get(ctx, httpTestServer.URL+"/not_found")
 	expectedErr := fmt.Errorf("%d %s", http.StatusNotFound, http.StatusText(http.StatusNotFound))
 	assert.Equal(t, expectedErr, err, "no error, ok")
 
 	expectedStatusCode := http.StatusNotFound
-	gotStatusCode := response.StatusCode()
+	gotStatusCode := response.StatusCode
 	assert.Equal(t, expectedStatusCode, gotStatusCode, "status code ok")
 
 	expectedBody := []byte(stubResponse)
-	gotBody := response.RawBody()
+	gotBody := response.RawBody
 	assert.Equal(t, expectedBody, gotBody, "%s - body ok")
 }
 
@@ -85,17 +90,19 @@ func TestRestClientHandlerEnv_Get_InternalServerError(t *testing.T) {
 
 	fetchTimeout := 10 * time.Second
 	logger := logging.GetLogger()
-	restClient := NewHTTPClient(logger, fetchTimeout)
+	ctx := context.Background()
+	ctx = logging.WithContext(ctx, logger)
+	restClient := NewHTTPClient(fetchTimeout)
 
-	response, err := restClient.Get(httpTestServer.URL + "/internal_server_error")
+	response, err := restClient.Get(ctx, httpTestServer.URL+"/internal_server_error")
 	expectedErr := fmt.Errorf("%d %s", http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	assert.Equal(t, expectedErr, err, "%s - no error, ok")
 
 	expectedStatusCode := http.StatusInternalServerError
-	gotStatusCode := response.StatusCode()
+	gotStatusCode := response.StatusCode
 	assert.Equal(t, expectedStatusCode, gotStatusCode, "%s - status code ok")
 
 	expectedBody := []byte(stubResponse)
-	gotBody := response.RawBody()
+	gotBody := response.RawBody
 	assert.Equal(t, expectedBody, gotBody, "%s - body ok")
 }
