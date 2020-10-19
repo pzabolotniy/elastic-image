@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -57,17 +56,17 @@ func (env *Env) PostResizeImage(c *gin.Context) {
 		return
 	}
 
-	prepareOKResponse(c, newImage, imageConf.CacheTTL)
+	prepareOKResponse(c, newImage, imageConf.BrowserCacheTTL)
 }
 
-func prepareOKResponse(c *gin.Context, image []byte, cacheTTL time.Duration) {
+func prepareOKResponse(c *gin.Context, image []byte, cacheTTL int) {
 	w := c.Writer
 	logger := logging.FromContext(c.Request.Context())
 
 	c.Status(http.StatusOK)
 	w.Header().Set("Content-Type", "image/jpeg")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(image)))
-	w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d, public", int(cacheTTL/time.Second)))
+	w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d, public", cacheTTL))
 	if _, err := w.Write(image); err != nil {
 		logger.WithError(err).Error("unable to write response")
 	}

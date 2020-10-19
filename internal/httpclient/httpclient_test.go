@@ -7,126 +7,95 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pzabolotniy/elastic-image/internal/config"
 	"github.com/pzabolotniy/elastic-image/internal/logging"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRestClientHandlerEnv_Get_OK(t *testing.T) {
-	testName := t.Name()
-
 	stubResponse := `{"ok":true}`
 	httpTestServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestMethod := r.Method
 
 		expectedMethod := "GET"
-		assert.Equalf(t, expectedMethod, requestMethod, "%s - http method ok", testName)
+		assert.Equal(t, expectedMethod, requestMethod, "http method ok")
 
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(stubResponse))
 	}))
 
-	conf := config.AppConfig{
-		ServerConfig: &config.ServerConfig{
-			Bind: "",
-		},
-		ImageConfig: &config.ImageConfig{
-			CacheTTL:     3600 * time.Second,
-			FetchTimeout: 10 * time.Second,
-		},
-	}
 	logger := logging.GetLogger()
-	restClient := NewHTTPClient(logger, conf.ImageConfig.FetchTimeout)
+	fetchTimeout := 10 * time.Second
+	restClient := NewHTTPClient(logger, fetchTimeout)
 
 	response, err := restClient.Get(httpTestServer.URL + "/ok")
-	assert.NoErrorf(t, err, "%s - no error, ok", testName)
+	assert.NoError(t, err, "no error, ok")
 
 	expectedStatusCode := http.StatusOK
 	gotStatusCode := response.StatusCode()
-	assert.Equalf(t, expectedStatusCode, gotStatusCode, "%s - status code ok", testName)
+	assert.Equal(t, expectedStatusCode, gotStatusCode, "status code ok")
 
 	expectedBody := []byte(stubResponse)
 	gotBody := response.RawBody()
-	assert.Equalf(t, expectedBody, gotBody, "%s - body ok", testName)
+	assert.Equal(t, expectedBody, gotBody, "%s - body ok")
 }
 
 func TestRestClientHandlerEnv_Get_NotFound(t *testing.T) {
-	testName := t.Name()
-
 	stubResponse := `not found`
 	httpTestServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestMethod := r.Method
 
 		expectedMethod := "GET"
-		assert.Equalf(t, expectedMethod, requestMethod, "%s - http method ok", testName)
+		assert.Equalf(t, expectedMethod, requestMethod, "http method ok")
 
 		w.WriteHeader(http.StatusNotFound)
 		w.Header().Set("Content-Type", "plain/text")
 		w.Write([]byte(stubResponse))
 	}))
 
-	conf := config.AppConfig{
-		ServerConfig: &config.ServerConfig{
-			Bind: "",
-		},
-		ImageConfig: &config.ImageConfig{
-			CacheTTL:     3600 * time.Second,
-			FetchTimeout: 10 * time.Second,
-		},
-	}
 	logger := logging.GetLogger()
-	restClient := NewHTTPClient(logger, conf.ImageConfig.FetchTimeout)
+	fetchTimeout := 10 * time.Second
+	restClient := NewHTTPClient(logger, fetchTimeout)
 
 	response, err := restClient.Get(httpTestServer.URL + "/not_found")
 	expectedErr := fmt.Errorf("%d %s", http.StatusNotFound, http.StatusText(http.StatusNotFound))
-	assert.Equalf(t, expectedErr, err, "%s - no error, ok", testName)
+	assert.Equal(t, expectedErr, err, "no error, ok")
 
 	expectedStatusCode := http.StatusNotFound
 	gotStatusCode := response.StatusCode()
-	assert.Equalf(t, expectedStatusCode, gotStatusCode, "%s - status code ok", testName)
+	assert.Equal(t, expectedStatusCode, gotStatusCode, "status code ok")
 
 	expectedBody := []byte(stubResponse)
 	gotBody := response.RawBody()
-	assert.Equalf(t, expectedBody, gotBody, "%s - body ok", testName)
+	assert.Equal(t, expectedBody, gotBody, "%s - body ok")
 }
 
 func TestRestClientHandlerEnv_Get_InternalServerError(t *testing.T) {
-	testName := t.Name()
-
 	stubResponse := `internal server error`
 	httpTestServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestMethod := r.Method
 
 		expectedMethod := "GET"
-		assert.Equalf(t, expectedMethod, requestMethod, "%s - http method ok", testName)
+		assert.Equal(t, expectedMethod, requestMethod, "http method ok")
 
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Header().Set("Content-Type", "plain/text")
 		w.Write([]byte(stubResponse))
 	}))
 
-	conf := config.AppConfig{
-		ServerConfig: &config.ServerConfig{
-			Bind: "",
-		},
-		ImageConfig: &config.ImageConfig{
-			CacheTTL:     3600 * time.Second,
-			FetchTimeout: 10 * time.Second,
-		},
-	}
+	fetchTimeout := 10 * time.Second
 	logger := logging.GetLogger()
-	restClient := NewHTTPClient(logger, conf.ImageConfig.FetchTimeout)
+	restClient := NewHTTPClient(logger, fetchTimeout)
 
 	response, err := restClient.Get(httpTestServer.URL + "/internal_server_error")
 	expectedErr := fmt.Errorf("%d %s", http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
-	assert.Equalf(t, expectedErr, err, "%s - no error, ok", testName)
+	assert.Equal(t, expectedErr, err, "%s - no error, ok")
 
 	expectedStatusCode := http.StatusInternalServerError
 	gotStatusCode := response.StatusCode()
-	assert.Equalf(t, expectedStatusCode, gotStatusCode, "%s - status code ok", testName)
+	assert.Equal(t, expectedStatusCode, gotStatusCode, "%s - status code ok")
 
 	expectedBody := []byte(stubResponse)
 	gotBody := response.RawBody()
-	assert.Equalf(t, expectedBody, gotBody, "%s - body ok", testName)
+	assert.Equal(t, expectedBody, gotBody, "%s - body ok")
 }

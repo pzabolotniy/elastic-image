@@ -14,58 +14,80 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/pzabolotniy/elastic-image/internal/config"
-	"github.com/pzabolotniy/elastic-image/internal/httpclient"
-	httpMocks "github.com/pzabolotniy/elastic-image/internal/httpclient/mocks"
 	"github.com/pzabolotniy/elastic-image/internal/image/resize"
 	"github.com/pzabolotniy/elastic-image/internal/logging"
 	"github.com/pzabolotniy/monkey"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
+type EnvTestSuite struct {
+	suite.Suite
+	router *gin.Engine
+	conf   *config.AppConfig
+}
+
 func TestPostImageResize(t *testing.T) {
+	envSuite := new(EnvTestSuite)
+	suite.Run(t, envSuite)
+}
+
+func (s *EnvTestSuite) SetupSuite() {
 	router := gin.New()
-	cacheTTL := 3600
 	testConfig := &config.AppConfig{
 		ServerConfig: &config.ServerConfig{
 			Bind: "",
 		},
 		ImageConfig: &config.ImageConfig{
-			CacheTTL:     time.Duration(cacheTTL) * time.Second,
-			FetchTimeout: 10 * time.Second,
+			BrowserCacheTTL: 3600,
+			FetchTimeout:    10 * time.Second,
 		},
 	}
 	testLogger := logging.GetLogger()
-	var nilError error
-
 	setupRouter(router, testConfig, testLogger)
+	s.router = router
+	s.conf = testConfig
+}
 
+func (s *EnvTestSuite) TestPostImageResize_OK() {
+	t := s.T()
+	router := s.router
 	testRequest := struct {
 		method string
 		uri    string
 	}{method: "POST", uri: "/api/v1/images/resize"}
-	testName := t.Name()
 
-	url := "http://any-host.local/image.jpeg"
 	expectedWidth := 1024
 	expectedHeight := 800
 
 	mockedImage := "i.am.image"
-	mockedBrowser := &httpMocks.Browser{}
-	mockedResponse := &httpMocks.Responser{}
-	monkey.Patch(httpclient.NewHTTPClient, func(logger logging.Logger, timeout time.Duration) httpclient.Browser {
-		return mockedBrowser
-	})
+	testURI := "/image.jpeg"
 
-	imageBytes := []byte(mockedImage)
-	mockedBrowser.On("Get", url).Return(mockedResponse, nilError)
-	mockedResponse.On("RawBody").Return(imageBytes)
-	expectedImage := bytes.NewReader(imageBytes)
+	httpTestServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestMethod := r.Method
+		requestPath := r.URL.String()
+
+		expectedMethod := "GET"
+		assert.Equal(t, expectedMethod, requestMethod, "http method ok")
+		expectedPath := testURI
+		assert.Equal(t, expectedPath, requestPath, "request path ok")
+
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "image/jpeg")
+		_, err := w.Write([]byte(mockedImage))
+		if err != nil {
+			t.Fatal(err)
+		}
+	}))
+	url := httpTestServer.URL + testURI
 
 	monkey.Patch(resize.Resize, func(ctx context.Context, srcImage io.Reader, width, height uint) ([]byte, error) {
 		assert.Equal(t, expectedWidth, int(width), "resize.Resize width ok")
 		assert.Equal(t, expectedHeight, int(height), "resize.Resize height ok")
+
+		expectedImage := bytes.NewReader([]byte(mockedImage))
 		assert.Equal(t, expectedImage, srcImage, "resize.Resize image ok")
-		return imageBytes, nil
+		return []byte(mockedImage), nil
 	})
 
 	inputBody := fmt.Sprintf(`{"url":"%s","width":%d,"heigth":%d}`, url, expectedWidth, expectedHeight)
@@ -74,25 +96,23 @@ func TestPostImageResize(t *testing.T) {
 	apiResponse := makeTestRequest(router, testRequest.method, testRequest.uri, reader, headers)
 
 	expectedCode := http.StatusOK
-	assert.Equalf(t, expectedCode, apiResponse.Code, "%s - http code ok", testName)
-	gotBodybytes, err := ioutil.ReadAll(apiResponse.Body)
+	assert.Equal(t, expectedCode, apiResponse.Code, "http code ok")
+	gotBody, err := ioutil.ReadAll(apiResponse.Body)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
-	expectedBodyBytes := imageBytes
-	assert.Equalf(t, expectedBodyBytes, gotBodybytes, "%s - response ok", testName)
+	expectedBody := []byte(mockedImage)
+	assert.Equal(t, expectedBody, gotBody, "response ok")
+
 	apiHeaders := apiResponse.Header()
 	contentLength := len(mockedImage)
 	expectedHeaders := http.Header{
 		"Content-Type":   []string{"image/jpeg"},
 		"Content-Length": []string{fmt.Sprintf("%d", contentLength)},
-		"Cache-Control":  []string{fmt.Sprintf("max-age=%d, public", cacheTTL)},
+		"Cache-Control":  []string{fmt.Sprintf("max-age=%d, public", s.conf.ImageConfig.BrowserCacheTTL)},
 		"X-Request-Id":   []string{apiHeaders.Get("X-Request-Id")}, // will not assert random uuid
 	}
-	assert.Equalf(t, expectedHeaders, apiHeaders, "%s - response headers ok", testName)
-
-	mockedBrowser.AssertExpectations(t)
-	mockedResponse.AssertExpectations(t)
+	assert.Equal(t, expectedHeaders, apiHeaders, "response headers ok")
 }
 
 func makeTestRequest(r http.Handler, method, path string, body io.Reader, headers map[string][]string) *httptest.ResponseRecorder {
