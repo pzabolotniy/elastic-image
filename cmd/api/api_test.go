@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
+	"bou.ke/monkey"
 	"github.com/gin-gonic/gin"
 	"github.com/pzabolotniy/elastic-image/internal/config"
 	"github.com/pzabolotniy/elastic-image/internal/image/resize"
 	"github.com/pzabolotniy/elastic-image/internal/logging"
-	"github.com/pzabolotniy/monkey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
