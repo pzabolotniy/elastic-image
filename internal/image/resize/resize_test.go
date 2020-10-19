@@ -16,8 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestResizeContainer_Resize(t *testing.T) {
-	testName := t.Name()
+func TestResize(t *testing.T) {
 	ctx := context.Background()
 	testLogger := logging.GetLogger()
 	ctx = logging.WithContext(ctx, testLogger)
@@ -36,9 +35,9 @@ func TestResizeContainer_Resize(t *testing.T) {
 
 	mockedDstImage := &mocks.Image{}
 	monkey.Patch(resize.Resize, func(gotWidth, gotHeight uint, img image.Image, gotInterp resize.InterpolationFunction) image.Image {
-		assert.Equalf(t, width, gotWidth, "%s - resize.Resize call, width ok", testName)
-		assert.Equalf(t, heigth, gotHeight, "%s - resize.Resize call, heigth ok", testName)
-		assert.Equalf(t, resize.Lanczos3, gotInterp, "%s - resize.Resize call, interpolation ok", testName)
+		assert.Equal(t, width, gotWidth, "resize.Resize call, width ok")
+		assert.Equal(t, heigth, gotHeight, "resize.Resize call, heigth ok")
+		assert.Equal(t, resize.Lanczos3, gotInterp, "resize.Resize call, interpolation ok")
 		return mockedDstImage
 	})
 
@@ -53,8 +52,8 @@ func TestResizeContainer_Resize(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	assert.NoErrorf(t, err, "%s - no errors, ok", testName)
-	assert.Equalf(t, imageBytes, newImage, "%s - result ok", testName)
+	assert.NoError(t, err, "no errors, ok")
+	assert.Equal(t, imageBytes, newImage, "result ok")
 
 	mockedSrcImage.AssertExpectations(t)
 	mockedDstImage.AssertExpectations(t)

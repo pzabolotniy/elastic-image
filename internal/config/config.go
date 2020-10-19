@@ -16,22 +16,22 @@ type ServerConfig struct {
 
 // ImageConfig contains image settings
 type ImageConfig struct {
-	CacheTTL     time.Duration
-	FetchTimeout time.Duration
+	BrowserCacheTTL int
+	FetchTimeout    time.Duration
 }
 
 // GetAppConfig returns *Config
 func GetAppConfig() *AppConfig {
 	bind := ":8080"
-	imageCacheTTL := 60 * 60 * time.Second
+	browserCacheTTL := 60 * 60 // 1 hour
 	fetchTimeout := 10 * time.Second
 	appConf := &AppConfig{
 		ServerConfig: &ServerConfig{
 			Bind: bind,
 		},
 		ImageConfig: &ImageConfig{
-			CacheTTL:     imageCacheTTL,
-			FetchTimeout: fetchTimeout,
+			BrowserCacheTTL: browserCacheTTL,
+			FetchTimeout:    fetchTimeout,
 		},
 	}
 
