@@ -64,6 +64,7 @@ func prepareOKResponse(c *gin.Context, image []byte, cacheTTL time.Duration) {
 	w := c.Writer
 	logger := logging.FromContext(c.Request.Context())
 
+	c.Status(http.StatusOK)
 	w.Header().Set("Content-Type", "image/jpeg")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(image)))
 	w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d, public", int(cacheTTL/time.Second)))

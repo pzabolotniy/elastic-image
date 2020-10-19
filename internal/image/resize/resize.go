@@ -17,13 +17,13 @@ func Resize(ctx context.Context, srcImage io.Reader, width, height uint) ([]byte
 	logger := logging.FromContext(ctx)
 	buffer := new(bytes.Buffer)
 
-	decodeImage, _, err := image.Decode(srcImage)
+	decodedImage, _, err := image.Decode(srcImage)
 	if err != nil {
 		logger.WithError(err).Error("decode image failed")
 		return nil, err
 	}
 
-	resizedImage := resize.Resize(width, height, decodeImage, resize.Lanczos3)
+	resizedImage := resize.Resize(width, height, decodedImage, resize.Lanczos3)
 	err = jpeg.Encode(buffer, resizedImage, nil)
 	if err != nil {
 		logger.WithError(err).Error("jpeg Encode image failed")
