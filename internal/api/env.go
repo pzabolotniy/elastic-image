@@ -1,11 +1,15 @@
 package api
 
-import "github.com/pzabolotniy/elastic-image/internal/config"
+import (
+	"github.com/pzabolotniy/elastic-image/internal/config"
+	"github.com/pzabolotniy/elastic-image/internal/image/fetch"
+)
 
 // Env is a container for api
 // environment variables
 type Env struct {
-	imageConf *config.ImageConfig
+	imageConf       *config.ImageConfig
+	sharedDownloads map[string]*fetch.DownloadState
 }
 
 // OptionFunc is a type of args for the NewEnv
@@ -20,6 +24,7 @@ func NewEnv(opts ...OptionFunc) *Env {
 	for _, optFunc := range opts {
 		optFunc(env)
 	}
+
 	return env
 }
 
@@ -28,5 +33,13 @@ func NewEnv(opts ...OptionFunc) *Env {
 func WithImageConf(conf *config.ImageConfig) OptionFunc {
 	return func(e *Env) {
 		e.imageConf = conf
+	}
+}
+
+// WithSharedDownload creates an option func
+// with shared downloaded images
+func WithSharedDownload(sharedDownloads map[string]*fetch.DownloadState) OptionFunc {
+	return func(e *Env) {
+		e.sharedDownloads = sharedDownloads
 	}
 }

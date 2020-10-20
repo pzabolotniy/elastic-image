@@ -3,12 +3,19 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/pzabolotniy/elastic-image/internal/config"
+	"github.com/pzabolotniy/elastic-image/internal/image/fetch"
 	"github.com/pzabolotniy/elastic-image/internal/logging"
 	"github.com/pzabolotniy/elastic-image/internal/middleware"
 )
 
+// SetupRouter setup passed gin-router (*gin.Engine)
+// to prepare http server
 func SetupRouter(router *gin.Engine, conf *config.AppConfig, logger logging.Logger) {
-	env := NewEnv(WithImageConf(conf.ImageConfig))
+	sharedDownloads := make(map[string]*fetch.DownloadState)
+	env := NewEnv(
+		WithImageConf(conf.ImageConfig),
+		WithSharedDownload(sharedDownloads),
+	)
 
 	router.Use(middleware.WithLoggerMw(logger))
 	router.Use(middleware.WithUniqRequestID)
