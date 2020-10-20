@@ -41,7 +41,7 @@ func (env *Env) PostResizeImage(c *gin.Context) {
 
 	url := postImageResize.URL
 	fetchParams := fetch.NewFetchParams(imageConf.FetchTimeout, url)
-	imageReader, err := fetch.GetImage(ctx, fetchParams)
+	imageReader, err := fetch.GetImage(ctx, env.sharedDownloads, fetchParams)
 	if err != nil {
 		prepareApp500ErrorResponse(c)
 		return
@@ -61,7 +61,7 @@ func (env *Env) PostResizeImage(c *gin.Context) {
 
 func prepareOKResponse(c *gin.Context, image []byte, cacheTTL int) {
 	w := c.Writer
-	logger := logging.FromContext(c.Request.Context())
+	logger := logging.FromContext(middleware.GetRequestCtx(c))
 
 	c.Status(http.StatusOK)
 	w.Header().Set("Content-Type", "image/jpeg")
