@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"bytes"
@@ -44,7 +44,7 @@ func (s *EnvTestSuite) SetupSuite() {
 		},
 	}
 	testLogger := logging.GetLogger()
-	setupRouter(router, testConfig, testLogger)
+	SetupRouter(router, testConfig, testLogger)
 	s.router = router
 	s.conf = testConfig
 }
