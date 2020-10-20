@@ -2,8 +2,10 @@
  * starts http server
  * implements JSON API
  * downloads image by URL
+   * request with duplicated URL will wait for download ordered by the first request and will use same fetched image
+   * when image is broadcasted to all subscribers, it will be wiped
  * resize it with width and heigth passed into the request
- * returns to the client
+ * returns resized image to the client
 
 ## Launch linter with command
 ```bash
