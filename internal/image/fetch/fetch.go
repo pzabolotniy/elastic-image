@@ -51,8 +51,7 @@ func GetImage(ctx context.Context, sharedDownload map[string]*DownloadState, par
 			return nil, err
 		}
 		imageReader = bytes.NewReader(dnState.Data)
-		logger.WithField("url", URL).Trace("fetched")
-		delete(sharedDownload, URL)
+		logger.WithField("url", URL).Trace("fetched shared")
 	} else {
 		subscribers := make([]chan error, 0, 1)
 		downloadState := &DownloadState{
@@ -60,6 +59,9 @@ func GetImage(ctx context.Context, sharedDownload map[string]*DownloadState, par
 			Subs: subscribers,
 		}
 		sharedDownload[URL] = downloadState
+		defer func(sd map[string]*DownloadState, url string) {
+			delete(sd, url)
+		}(sharedDownload, URL)
 		httpClient := httpclient.NewHTTPClient(timeout)
 		response, err := httpClient.Get(ctx, URL)
 		if err != nil {
