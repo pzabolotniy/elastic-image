@@ -1,4 +1,5 @@
 # elastic-image
+ * this is an implementation of the test task
  * starts http server
  * implements JSON API
  * downloads image by URL
